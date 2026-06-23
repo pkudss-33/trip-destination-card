@@ -286,7 +286,7 @@
   .card-dual .dual-col-meta h1 {
     font-family: var(--serif);
     font-weight: 900;
-    font-size: clamp(22px,3.2vw,36px);
+    font-size: clamp(26px,4vw,44px);
     line-height: 1.06;
     color: var(--ink);
     margin: 0 0 6px;
@@ -511,9 +511,16 @@
   }
 
   @media print {
-    body { background: #fff; }
-    .topbar, .nav-dots, .page-num { display: none !important; }
-    .slide-container { display: block; height: auto; overflow: visible; }
+    @page { margin: 0; size: auto; }
+    body { background: var(--paper); -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    .topbar, .nav-dots, .page-num, #btn-export { display: none !important; }
+    .slide-container { display: block; height: auto; overflow: visible; padding-top: 0; }
+    .card {
+      flex: none; height: auto; min-height: auto;
+      scroll-snap-align: none; max-width: 100%; margin: 0;
+      padding: 24px clamp(16px,3vw,32px); page-break-after: always;
+    }
+    .card:last-child { page-break-after: auto; }
   }
 </style>
 </head>
