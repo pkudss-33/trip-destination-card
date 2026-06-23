@@ -60,6 +60,28 @@
     overflow-x: hidden;
   }
 
+  /* ---- Export button (long-scroll only) ---- */
+  #btn-export {
+    display: none;
+    position: fixed;
+    top: 62px;
+    right: clamp(16px,4vw,40px);
+    z-index: 99;
+    appearance: none;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    background: var(--paper-warm);
+    color: var(--ink-soft);
+    cursor: pointer;
+    font: 400 12px/1 var(--sans);
+    padding: 7px 14px;
+    letter-spacing: .02em;
+    transition: all .18s;
+  }
+  #btn-export:hover { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  body.long-scroll #btn-export { display: block; }
+  @media print { #btn-export { display: none !important; } }
+
   /* ---- Top bar ---- */
   .topbar {
     position: fixed;
@@ -503,9 +525,11 @@
   <div class="actions">
     <button id="btn-slide" class="active" onclick="switchMode('slide')" title="翻页模式">◀◀ 翻页</button>
     <button id="btn-long" onclick="switchMode('long')" title="长图模式">📜 长图</button>
-    <button onclick="exportImage()" title="导出PNG长图">📥 导出</button>
   </div>
 </div>
+
+<!-- ==================== EXPORT BUTTON (long-scroll mode only) ==================== -->
+<button id="btn-export" onclick="exportImage()" title="导出长图PNG" style="display:none">↓ 导出长图</button>
 
 <!-- ==================== SLIDE CONTAINER ==================== -->
 <div class="slide-container" id="slideContainer">
