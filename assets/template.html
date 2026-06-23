@@ -1,0 +1,876 @@
+<!DOCTYPE html>
+<!--
+  ============================================================================
+  TRIP DESTINATION CARD TEMPLATE
+  "电子杂志 × 电子墨水" 风格 · 行程目的地备选展示
+  ---------------------------------------------------------------------------
+  HOW TO USE
+  1. Copy this whole file. Keep the <style> block AS-IS (it is the design system).
+  2. Replace every [[...]] placeholder with real content.
+  3. Each .card block is one destination. Add/remove cards as needed (3-4 typical).
+  4. Images: prefer base64-embedded for offline use; URLs need network.
+  5. Save and open in browser.
+
+  MODES
+  - Slide mode (default): horizontal swipe, keyboard ← →, scroll wheel
+  - Long-scroll mode: vertical stack, click 📜 button to toggle
+  - Export PNG: in long-scroll mode, click 📥 to download as image
+
+  THEME: change :root variables to re-skin; keep everything else.
+  ============================================================================
+-->
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>[[行程标题 · 如：7月出行目的地备选方案]]</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+<style>
+  /* ===================================================================
+     DESIGN SYSTEM — E-INK MAGAZINE
+     =================================================================== */
+  :root {
+    --paper: #F6F2EA;
+    --paper-warm: #FBF7F0;
+    --ink: #2C2416;
+    --ink-soft: #6B5E4F;
+    --ink-mute: #9B8E7F;
+    --accent: #8B6C42;
+    --accent-soft: #C4A97D;
+    --line: rgba(44,36,22,.10);
+    --line-strong: rgba(44,36,22,.18);
+    --shadow: 0 2px 24px rgba(44,36,22,.06);
+    --serif: "Noto Serif SC", "Songti SC", "SimSun", serif;
+    --sans: "Noto Sans SC", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --mono: "JetBrains Mono", "SF Mono", "Menlo", monospace;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: var(--sans);
+    color: var(--ink);
+    background: var(--paper);
+    line-height: 1.75;
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  /* ---- Top bar ---- */
+  .topbar {
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px clamp(16px,3vw,40px);
+    background: rgba(246,242,234,.78);
+    backdrop-filter: saturate(140%) blur(12px);
+    border-bottom: 1px solid var(--line);
+    font-size: 13px;
+    color: var(--ink-mute);
+    letter-spacing: .02em;
+  }
+  .topbar .title {
+    font-family: var(--serif);
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: .01em;
+  }
+  .topbar .actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+  }
+  .topbar button {
+    appearance: none;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    background: var(--paper-warm);
+    color: var(--ink-soft);
+    cursor: pointer;
+    font: 400 12px/1 var(--sans);
+    padding: 7px 14px;
+    letter-spacing: .02em;
+    transition: all .18s;
+  }
+  .topbar button:hover {
+    background: var(--ink);
+    color: var(--paper);
+    border-color: var(--ink);
+  }
+  .topbar button.active {
+    background: var(--ink);
+    color: var(--paper);
+  }
+
+  /* ---- Slide container (horizontal snap) ---- */
+  .slide-container {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-behavior: smooth;
+    height: 100vh;
+    padding-top: 50px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .slide-container::-webkit-scrollbar { display: none; }
+
+  /* ---- Single card = one slide ---- */
+  .card {
+    flex: 0 0 100vw;
+    scroll-snap-align: center;
+    display: flex;
+    align-items: stretch;
+    height: calc(100vh - 50px);
+    padding: clamp(20px,4vw,60px) clamp(24px,5vw,80px);
+    gap: clamp(20px,4vw,60px);
+  }
+
+  /* ---- Left info panel ---- */
+  .card-info {
+    flex: 0 1 34%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-width: 0;
+    padding-right: 10px;
+  }
+  .card-info h1 {
+    font-family: var(--serif);
+    font-weight: 900;
+    font-size: clamp(26px,4vw,44px);
+    line-height: 1.06;
+    letter-spacing: 0;
+    color: var(--ink);
+    margin-bottom: 10px;
+  }
+  .card-info h1 .sub {
+    display: block;
+    font-weight: 400;
+    font-size: clamp(16px,1.8vw,22px);
+    color: var(--ink-soft);
+    margin-top: 4px;
+    letter-spacing: .02em;
+  }
+
+  /* ---- Meta row: transport + weather ---- */
+  .meta-row {
+    display: flex;
+    gap: 28px;
+    margin: 14px 0 10px;
+    flex-wrap: wrap;
+  }
+  .meta-item {
+    font-family: var(--mono);
+    font-size: 15px;
+    color: var(--ink-soft);
+    line-height: 1.6;
+  }
+  .meta-item .label {
+    display: block;
+    font-family: var(--sans);
+    font-size: 11px;
+    letter-spacing: .24em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 700;
+    margin-bottom: 6px;
+  }
+  .meta-item .flight {
+    display: block;
+    margin: 2px 0;
+    font-size: 14px;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: break-word;
+  }
+
+  /* ---- Hotel section ---- */
+  .hotels-area {
+    margin: 16px 0 10px;
+  }
+  .hotel-block {
+    padding: 14px 0;
+    border-top: 1px solid var(--line);
+  }
+  .hotel-block:first-child { border-top: none; padding-top: 0; }
+  .hotel-block:last-child { border-bottom: 1px solid var(--line); padding-bottom: 14px; }
+  .hotel-section h2 {
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: clamp(18px,2.2vw,26px);
+    color: var(--ink);
+    margin-bottom: 4px;
+    letter-spacing: .01em;
+  }
+  .hotel-details {
+    font-family: var(--mono);
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+    margin-top: 6px;
+  }
+  .hotel-details span {
+    display: inline-block;
+    margin-right: 16px;
+    white-space: nowrap;
+  }
+  .hotel-details .price {
+    color: var(--accent);
+    font-weight: 500;
+  }
+
+  /* ---- Pros / Cons ---- */
+  .pros-cons {
+    display: flex;
+    gap: 24px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+  }
+  .pros, .cons {
+    flex: 1 1 200px;
+  }
+  .pros h3, .cons h3 {
+    font-family: var(--serif);
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    margin-bottom: 8px;
+  }
+  .pros h3 { color: #4A7C59; }
+  .cons h3 { color: #B0674A; }
+  .pros ul, .cons ul {
+    list-style: none;
+    font-size: 14px;
+    color: var(--ink-soft);
+    line-height: 1.7;
+  }
+  .pros li::before { content: "◆ "; color: #4A7C59; font-size: 8px; }
+  .cons li::before { content: "◇ "; color: #B0674A; font-size: 9px; }
+
+  /* ---- Dual-hotel 3-column layout ---- */
+  .card-dual {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr 1.6fr;
+    gap: clamp(18px,3vw,36px);
+    flex: 1 1 100%;
+    align-self: center;
+    min-width: 0;
+  }
+  .card-dual .dual-col-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding-top: 4px;
+  }
+  .card-dual .dual-col-meta h1 {
+    font-family: var(--serif);
+    font-weight: 900;
+    font-size: clamp(22px,3.2vw,36px);
+    line-height: 1.06;
+    color: var(--ink);
+    margin: 0 0 6px;
+  }
+  .card-dual .dual-col-meta h1 .sub {
+    display: block;
+    font-weight: 400;
+    font-size: clamp(12px,1.2vw,15px);
+    color: var(--ink-soft);
+    margin-top: 4px;
+    letter-spacing: .02em;
+  }
+  .card-dual .dual-col-meta .meta-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .card-dual .dual-col-hotel {
+    display: flex;
+    flex-direction: column;
+    border-left: 1px solid var(--line);
+    padding-left: clamp(12px,2vw,24px);
+    min-width: 0;
+    gap: 10px;
+  }
+  .card-dual .dual-col-hotel:first-of-type { border-left: none; padding-left: 0; }
+  .card-dual .hotel-section { margin: 0; padding: 0 0 12px; border-bottom: 1px solid var(--line); border-top: none; }
+  .card-dual .pros-cons { flex-direction: column; gap: 8px; margin-top: 2px; }
+  .card-dual .pros, .card-dual .cons { flex: none; }
+  .card-dual .dual-col-hotel .hotel-imgs {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    margin-top: 6px;
+    width: 100%;
+  }
+  .card-dual .dual-col-hotel .hotel-imgs img {
+    width: 100%;
+    height: 100%;
+    max-height: 22vh;
+    object-fit: contain;
+  }
+
+  /* ---- Right image panel: 6:4 split ---- */
+  .card-image {
+    flex: 1 1 62%;
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+    max-width: 66%;
+    align-items: flex-start;
+  }
+  .card-image .img-col-landscape {
+    flex: 6;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .card-image .img-col-portrait {
+    flex: 4;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+  .card-image .img-col-landscape img {
+    width: 100%;
+    height: auto;
+    max-height: 19vh;
+    object-fit: contain;
+    display: block;
+  }
+  .card-image .img-col-portrait img {
+    width: 100%;
+    height: auto;
+    max-height: 28vh;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* ---- Nav dots ---- */
+  .nav-dots {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 99;
+  }
+  .nav-dots .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--ink-mute);
+    opacity: .35;
+    transition: all .25s;
+    cursor: pointer;
+  }
+  .nav-dots .dot.active { opacity: 1; background: var(--accent); width: 24px; border-radius: 4px; }
+
+  /* ---- Page indicator ---- */
+  .page-num {
+    position: fixed;
+    bottom: 28px;
+    right: clamp(16px,4vw,40px);
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--ink-mute);
+    z-index: 99;
+  }
+
+  /* ===================================================================
+     LONG-SCROLL MODE
+     =================================================================== */
+  body.long-scroll .slide-container {
+    display: block;
+    overflow-x: visible;
+    height: auto;
+    padding-top: 50px;
+  }
+  body.long-scroll .card {
+    flex: none;
+    height: auto;
+    min-height: 80vh;
+    scroll-snap-align: none;
+    max-width: 1200px;
+    margin: 0 auto 40px;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 48px;
+  }
+  body.long-scroll .card:last-child { border-bottom: none; }
+  body.long-scroll .nav-dots { display: none; }
+  body.long-scroll .page-num { display: none; }
+
+  /* ===================================================================
+     ESC INDEX OVERLAY
+     =================================================================== */
+  .index-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    background: var(--paper);
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 60px 40px;
+  }
+  .index-overlay.show { display: flex; }
+  .index-overlay h2 {
+    font-family: var(--serif);
+    font-weight: 700;
+    font-size: 28px;
+    margin-bottom: 10px;
+  }
+  .index-overlay .index-grid {
+    display: flex;
+    gap: 24px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .index-overlay .index-thumb {
+    width: 260px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    transition: all .2s;
+    background: var(--paper-warm);
+    box-shadow: var(--shadow);
+  }
+  .index-overlay .index-thumb:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 32px rgba(44,36,22,.12);
+  }
+  .index-overlay .index-thumb img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    display: block;
+    border-bottom: 1px solid var(--line);
+    background: linear-gradient(135deg, #EAE4D8, #DFD6C4);
+  }
+  .index-overlay .index-thumb .label {
+    padding: 12px 16px;
+    font-family: var(--serif);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--ink);
+  }
+
+  /* ===================================================================
+     RESPONSIVE
+     =================================================================== */
+  @media (max-width: 768px) {
+    .card {
+      flex-direction: column-reverse;
+      padding: 20px 24px;
+      gap: 20px;
+      height: auto;
+      min-height: calc(100vh - 50px);
+      overflow-y: auto;
+    }
+    .card-info { flex: none; padding-right: 0; }
+    .card-image { flex: none; max-width: 100%; }
+    .card-image .img-col-landscape img { max-height: 24vh; }
+    .card-image .img-col-portrait img { max-height: 36vh; }
+    .meta-row { flex-direction: column; gap: 12px; }
+    .pros-cons { flex-direction: column; gap: 14px; }
+    .card-info h1 { font-size: clamp(22px,7vw,34px); }
+    .card-dual { grid-template-columns: 1fr; gap: 18px; }
+    .card-dual .dual-col-hotel { border-left: none; padding-left: 0; border-top: 1px solid var(--line); padding-top: 16px; }
+    .card-dual .dual-col-hotel:first-of-type { border-top: none; padding-top: 0; }
+    .card-dual .dual-col-hotel .hotel-imgs img { max-height: 18vh; }
+  }
+
+  @media print {
+    body { background: #fff; }
+    .topbar, .nav-dots, .page-num { display: none !important; }
+    .slide-container { display: block; height: auto; overflow: visible; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ==================== TOP BAR ==================== -->
+<div class="topbar">
+  <span class="title">[[行程标题 · 如：2026年7月 · 出行目的地备选方案]]</span>
+  <div class="actions">
+    <button id="btn-slide" class="active" onclick="switchMode('slide')" title="翻页模式">◀◀ 翻页</button>
+    <button id="btn-long" onclick="switchMode('long')" title="长图模式">📜 长图</button>
+    <button onclick="exportImage()" title="导出PNG长图">📥 导出</button>
+  </div>
+</div>
+
+<!-- ==================== SLIDE CONTAINER ==================== -->
+<div class="slide-container" id="slideContainer">
+
+  <!-- ========== CARD 1 ========== -->
+  <div class="card" id="card-1">
+    <div class="card-info">
+      <h1>[[目的地名称 1]]<span class="sub">[[副标题/区域 · 如：北疆 · 天山北麓]]</span></h1>
+
+      <div class="meta-row">
+        <div class="meta-item">
+          <span class="label">交通</span>
+          <span class="flight">[[航班信息 · 如：北京直飞 4h]]</span>
+          <span class="flight">[[去程 · 如：7/2 周四 20:55-01:15 首都-乌市]]</span>
+          <span class="flight">[[返程 · 如：7/5 周日 14:35-18:10 乌市-首都]]</span>
+          <span class="flight" style="color:var(--ink-mute)">[[备注 · 如：大飞机，无wifi]]</span>
+        </div>
+        <div class="meta-item">
+          <span class="label">天气</span>
+          <span>[[温度 · 如：7月 20-30℃]]</span>
+          <span style="display:block;color:var(--ink-mute);margin-top:2px">[[提示 · 如：温差大，紫外线强]]</span>
+        </div>
+      </div>
+
+      <div class="hotel-block">
+        <div class="hotel-section">
+          <h2>[[酒店名称]]</h2>
+          <div class="hotel-details">
+            <span>[[开业年份]]年开业</span>
+            <span>[[房型名称]]</span>
+            <span>[[面积]]㎡</span>
+            <span class="price">¥[[价格]]/晚</span>
+            <span style="color:var(--ink-mute)">[[特色 · 如：无露台 · 室内禁烟]]</span>
+          </div>
+        </div>
+        <div class="pros-cons">
+          <div class="pros">
+            <h3>优点</h3>
+            <ul>
+              <li>[[优点 1]]</li>
+              <li>[[优点 2]]</li>
+              <li>[[优点 3]]</li>
+            </ul>
+          </div>
+          <div class="cons">
+            <h3>注意</h3>
+            <ul>
+              <li>[[缺点 1]]</li>
+              <li>[[缺点 2]]</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-image">
+      <div class="img-col-landscape">
+        <img loading="lazy" onerror="this.style.display='none'" src="[[目的地1-横版图1]]" alt="[[说明]]">
+        <img loading="lazy" onerror="this.style.display='none'" src="[[目的地1-横版图2]]" alt="[[说明]]">
+        <img loading="lazy" onerror="this.style.display='none'" src="[[目的地1-横版图3]]" alt="[[说明]]">
+      </div>
+      <div class="img-col-portrait">
+        <img loading="lazy" onerror="this.style.display='none'" src="[[目的地1-竖版图1]]" alt="[[说明]]">
+        <img loading="lazy" onerror="this.style.display='none'" src="[[目的地1-竖版图2]]" alt="[[说明]]">
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== CARD 2 ========== -->
+  <div class="card" id="card-2">
+    <div class="card-info">
+      <h1>[[目的地名称 2]]<span class="sub">[[副标题/区域 · 如：伊犁河谷 · 塞外江南]]</span></h1>
+
+      <div class="meta-row">
+        <div class="meta-item">
+          <span class="label">交通</span>
+          <span class="flight">[[航班信息 · 如：北京直飞 5h]]</span>
+          <span class="flight">[[去程 · 如：7/2 周四 15:10-20:25 首都-伊宁]]</span>
+          <span class="flight">[[返程 · 如：7/5 周日 15:10-19:30 伊宁-大兴]]</span>
+          <span class="flight" style="color:var(--ink-mute)">[[备注 · 如：小飞机，无wifi]]</span>
+        </div>
+        <div class="meta-item">
+          <span class="label">天气</span>
+          <span>[[温度 · 如：7月 17-29℃]]</span>
+          <span style="display:block;color:var(--ink-mute);margin-top:2px">[[提示]]</span>
+        </div>
+      </div>
+
+      <div class="hotel-block">
+        <div class="hotel-section">
+          <h2>[[酒店名称]]</h2>
+          <div class="hotel-details">
+            <span>[[开业年份]]年开业</span>
+            <span>[[房型名称]]</span>
+            <span>[[面积]]㎡</span>
+            <span class="price">¥[[价格]]/晚</span>
+            <span style="color:var(--ink-mute)">[[特色]]</span>
+          </div>
+        </div>
+        <div class="pros-cons">
+          <div class="pros"><h3>优点</h3><ul><li>[[优点 1]]</li><li>[[优点 2]]</li></ul></div>
+          <div class="cons"><h3>注意</h3><ul><li>[[缺点 1]]</li><li>[[缺点 2]]</li></ul></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card-image">
+      <div class="img-col-landscape">
+        <img loading="lazy" onerror="this.style.display='none'" src="[[目的地2-横版图1]]" alt="[[说明]]">
+        <img loading="lazy" onerror="this.style.display='none'" src="[[目的地2-横版图2]]" alt="[[说明]]">
+        <img loading="lazy" onerror="this.style.display='none'" src="[[目的地2-横版图3]]" alt="[[说明]]">
+      </div>
+      <div class="img-col-portrait">
+        <img loading="lazy" onerror="this.style.display='none'" src="[[目的地2-竖版图1]]" alt="[[说明]]">
+        <img loading="lazy" onerror="this.style.display='none'" src="[[目的地2-竖版图2]]" alt="[[说明]]">
+      </div>
+    </div>
+  </div>
+
+  <!-- ========== CARD 3 ========== -->
+  <div class="card" id="card-3">
+    <!-- DUAL-HOTEL 3-COLUMN LAYOUT -->
+    <div class="card-dual">
+
+      <!-- Col 1: Name + Transport + Weather -->
+      <div class="dual-col-meta">
+        <h1>[[目的地名称 3]]<span class="sub">[[副标题/区域]]</span></h1>
+        <div class="meta-stack">
+          <div class="meta-item">
+            <span class="label">交通</span>
+            <span class="flight">[[航班信息 · 如：北京直飞 4h]]</span>
+            <span class="flight">[[去程 · 如：7/2 周四 7:45–12:15 首都→目的地]]</span>
+            <span class="flight">[[返程 · 如：7/5 周日 13:20–17:15 目的地→首都]]</span>
+            <span class="flight" style="color:var(--ink-mute)">[[备注 · 如：大飞机，不保证 WiFi]]</span>
+          </div>
+          <div class="meta-item">
+            <span class="label">天气</span>
+            <span>[[温度 · 如：7月 10–25℃]]</span>
+            <span style="display:block;color:var(--ink-mute);margin-top:2px">[[提示 · 如：高原气候，海拔 3,650m，注意高反]]</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Col 2: Hotel A -->
+      <div class="dual-col-hotel">
+        <div class="hotel-section">
+          <h2>[[酒店名称 A]]</h2>
+          <div class="hotel-details">
+            <span>[[年份]]年开业</span>
+            <span>[[房型]]</span>
+            <span>[[面积]]㎡</span>
+            <span class="price">¥[[价格]]/晚</span>
+            <span style="color:var(--ink-mute)">[[特色]]</span>
+          </div>
+        </div>
+        <div class="pros-cons">
+          <div class="pros"><h3>优点</h3><ul><li>[[优点 A1]]</li><li>[[优点 A2]]</li></ul></div>
+          <div class="cons"><h3>注意</h3><ul><li>[[缺点 A1]]</li><li>[[缺点 A2]]</li></ul></div>
+        </div>
+        <div class="hotel-imgs">
+          <img loading="lazy" onerror="this.style.display='none'" src="[[酒店A图片1]]" alt="[[酒店A名称]]">
+          <img loading="lazy" onerror="this.style.display='none'" src="[[酒店A图片2]]" alt="[[酒店A名称]]">
+        </div>
+      </div>
+
+      <!-- Col 3: Hotel B -->
+      <div class="dual-col-hotel">
+        <div class="hotel-section">
+          <h2>[[酒店名称 B]]</h2>
+          <div class="hotel-details">
+            <span>[[年份]]年开业</span>
+            <span>[[房型]]</span>
+            <span>[[面积]]㎡</span>
+            <span class="price">¥[[价格]]/晚</span>
+            <span style="color:var(--ink-mute)">[[特色]]</span>
+          </div>
+        </div>
+        <div class="pros-cons">
+          <div class="pros"><h3>优点</h3><ul><li>[[优点 B1]]</li><li>[[优点 B2]]</li></ul></div>
+          <div class="cons"><h3>注意</h3><ul><li>[[缺点 B1]]</li><li>[[缺点 B2]]</li></ul></div>
+        </div>
+        <div class="hotel-imgs">
+          <img loading="lazy" onerror="this.style.display='none'" src="[[酒店B图片1]]" alt="[[酒店B名称]]">
+          <img loading="lazy" onerror="this.style.display='none'" src="[[酒店B图片2]]" alt="[[酒店B名称]]">
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ========== CARD 4 (OPTIONAL — uncomment if needed) ========== -->
+  <!--
+  <div class="card" id="card-4">
+    <div class="card-info">
+      <h1>[[目的地名称 4]]<span class="sub">[[副标题/区域]]</span></h1>
+      <div class="meta-row">
+        <div class="meta-item"><span class="label">交通</span><span class="flight">[[航班]]</span></div>
+        <div class="meta-item"><span class="label">天气</span><span>[[温度]]</span></div>
+      </div>
+      <div class="hotel-section">
+        <h2>[[酒店名称]]</h2>
+        <div class="hotel-details"><span>[[年份]]年开业</span><span>[[房型]]</span><span>[[面积]]㎡</span><span class="price">¥[[价格]]/晚</span></div>
+      </div>
+      <div class="pros-cons">
+        <div class="pros"><h3>优点</h3><ul><li>[[优点]]</li></ul></div>
+        <div class="cons"><h3>注意</h3><ul><li>[[缺点]]</li></ul></div>
+      </div>
+    </div>
+    <div class="card-image">
+      <img class="img-landscape" loading="lazy" onerror="this.style.display='none'" src="[[目的地4-横版图1]]" alt="[[说明]]">
+      <img class="img-landscape" loading="lazy" onerror="this.style.display='none'" src="[[目的地4-横版图2]]" alt="[[说明]]">
+      <img class="img-portrait" loading="lazy" onerror="this.style.display='none'" src="[[目的地4-竖版图1]]" alt="[[说明]]">
+      <img class="img-portrait" loading="lazy" onerror="this.style.display='none'" src="[[目的地4-竖版图2]]" alt="[[说明]]">
+    </div>
+  </div>
+  -->
+
+</div>
+
+<!-- ==================== NAV DOTS ==================== -->
+<div class="nav-dots" id="navDots">
+  <span class="dot active" onclick="goTo(0)"></span>
+  <span class="dot" onclick="goTo(1)"></span>
+  <span class="dot" onclick="goTo(2)"></span>
+  <!-- <span class="dot" onclick="goTo(3)"></span> -->
+</div>
+<div class="page-num" id="pageNum">1 / 3</div>
+
+<!-- ==================== ESC INDEX ==================== -->
+<div class="index-overlay" id="indexOverlay">
+  <h2>[[行程标题]]</h2>
+  <p style="color:var(--ink-mute);margin-bottom:10px">ESC 返回翻页</p>
+  <div class="index-grid" id="indexGrid"></div>
+</div>
+
+<!-- ==================== SCRIPTS ==================== -->
+<script>
+  // ---- State ----
+  let currentSlide = 0;
+  const container = document.getElementById('slideContainer');
+  const cards = container.querySelectorAll('.card');
+  const totalSlides = cards.length;
+
+  // ---- Nav dots ----
+  function updateDots() {
+    document.querySelectorAll('#navDots .dot').forEach((d,i) => {
+      d.classList.toggle('active', i === currentSlide);
+    });
+    document.getElementById('pageNum').textContent = `${currentSlide+1} / ${totalSlides}`;
+  }
+
+  // ---- Go to slide ----
+  function goTo(n) {
+    if (n < 0 || n >= totalSlides) return;
+    currentSlide = n;
+    cards[n].scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    updateDots();
+  }
+
+  // ---- Track current slide from scroll ----
+  let scrollTimeout;
+  container.addEventListener('scroll', () => {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(() => {
+      const center = container.scrollLeft + container.clientWidth / 2;
+      let best = 0, bestDist = Infinity;
+      cards.forEach((c,i) => {
+        const dist = Math.abs(c.offsetLeft + c.clientWidth/2 - center);
+        if (dist < bestDist) { bestDist = dist; best = i; }
+      });
+      if (best !== currentSlide) { currentSlide = best; updateDots(); }
+    }, 80);
+  });
+
+  // ---- Keyboard ----
+  document.addEventListener('keydown', e => {
+    if (document.body.classList.contains('long-scroll')) return;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') { e.preventDefault(); goTo(currentSlide + 1); }
+    if (e.key === 'ArrowLeft'  || e.key === 'ArrowUp')   { e.preventDefault(); goTo(currentSlide - 1); }
+    if (e.key === 'Escape') { toggleIndex(); }
+  });
+
+  // ---- ESC index overlay ----
+  function toggleIndex() {
+    const overlay = document.getElementById('indexOverlay');
+    if (overlay.classList.contains('show')) {
+      overlay.classList.remove('show');
+    } else {
+      // Build thumbnails
+      const grid = document.getElementById('indexGrid');
+      grid.innerHTML = '';
+      cards.forEach((c,i) => {
+        const thumb = document.createElement('div');
+        thumb.className = 'index-thumb';
+        thumb.onclick = () => {
+          overlay.classList.remove('show');
+          if (document.body.classList.contains('long-scroll')) switchMode('slide');
+          goTo(i);
+        };
+        const img = c.querySelector('img');
+        const h1 = c.querySelector('h1');
+        thumb.innerHTML = `
+          ${img ? `<img src="${img.src}" alt="" onerror="this.style.display='none'">` : '<div style="height:140px;background:linear-gradient(135deg,#EAE4D8,#DFD6C4)"></div>'}
+          <div class="label">${h1 ? h1.childNodes[0].textContent.trim() : '目的地 '+(i+1)}</div>
+        `;
+        grid.appendChild(thumb);
+      });
+      overlay.classList.add('show');
+    }
+  }
+
+  // ---- Mode switch ----
+  function switchMode(mode) {
+    const btnS = document.getElementById('btn-slide');
+    const btnL = document.getElementById('btn-long');
+    if (mode === 'long') {
+      document.body.classList.add('long-scroll');
+      btnS.classList.remove('active');
+      btnL.classList.add('active');
+    } else {
+      document.body.classList.remove('long-scroll');
+      btnL.classList.remove('active');
+      btnS.classList.add('active');
+      goTo(currentSlide);
+    }
+  }
+  window.switchMode = switchMode;
+
+  // ---- Export image ----
+  async function exportImage() {
+    const wasLong = document.body.classList.contains('long-scroll');
+    if (!wasLong) {
+      document.body.classList.add('long-scroll');
+      await new Promise(r => setTimeout(r, 400));
+    }
+    try {
+      const el = document.getElementById('slideContainer');
+      const blob = await htmlToImage.toBlob(el, {
+        backgroundColor: '#F6F2EA',
+        pixelRatio: 2,
+        style: { transform: 'none' }
+      });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = '行程方案-[[日期 · 如：202607]].png';
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch(e) {
+      alert('导出失败：' + e.message + '\n\n请尝试在长图模式下导出。');
+    }
+    if (!wasLong) {
+      document.body.classList.remove('long-scroll');
+    }
+  }
+  window.exportImage = exportImage;
+
+  // ---- Init ----
+  updateDots();
+  goTo(0);
+</script>
+
+</body>
+</html>
