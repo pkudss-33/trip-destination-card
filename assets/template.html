@@ -27,7 +27,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/html-to-image@1.11.11/dist/html-to-image.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <style>
   /* ===================================================================
      DESIGN SYSTEM — E-INK MAGAZINE
@@ -858,26 +858,32 @@
   }
   window.switchMode = switchMode;
 
-  // ---- Export image ----
+  // ---- Export image using html2canvas ----
   async function exportImage() {
     const wasLong = document.body.classList.contains('long-scroll');
     if (!wasLong) {
       document.body.classList.add('long-scroll');
-      await new Promise(r => setTimeout(r, 500));
+      await new Promise(r => setTimeout(r, 600));
     }
     try {
       const el = document.getElementById('slideContainer');
-      const dataUrl = await htmlToImage.toPng(el, {
+      const canvas = await html2canvas(el, {
         backgroundColor: '#F6F2EA',
-        pixelRatio: 1,
-        cacheBust: true,
+        scale: 1,
+        useCORS: true,
+        allowTaint: true,
+        logging: false,
       });
-      const a = document.createElement('a');
-      a.href = dataUrl;
-      a.download = '行程方案-[[日期 · 如：202607]].png';
-      a.click();
+      canvas.toBlob(function(blob) {
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = '行程方案-[[日期 · 如：202607]].png';
+        a.click();
+        URL.revokeObjectURL(url);
+      }, 'image/png');
     } catch(e) {
-      alert('导出失败：' + e.message + '\n\n可尝试：切换长图模式 → 浏览器打印 → 另存为 PDF');
+      alert('导出失败：' + e.message + '\n\n备选方案：浏览器 → 打印 → 另存为 PDF');
     }
     if (!wasLong) {
       document.body.classList.remove('long-scroll');
